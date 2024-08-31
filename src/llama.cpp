@@ -2,6 +2,9 @@
 #include "llama-vocab.h"
 #include "llama-grammar.h"
 #include "llama-sampling.h"
+#include <cmath>    // for std::sqrt
+#include "string.h"
+
 
 #include "unicode.h"
 
@@ -5801,6 +5804,104 @@ static void llm_load_hparams(
 
     hparams.rope_type = llama_rope_type(&model);
 }
+
+
+// Function to calculate cosine similarity between two vectors
+float cosine_similarity(const std::vector<float>& a, const std::vector<float>& b) {
+    float dot_product = 0.0f;
+    float norm_a = 0.0f;
+    float norm_b = 0.0f;
+
+    for (size_t i = 0; i < a.size(); ++i) {
+        dot_product += a[i] * b[i];
+        norm_a += a[i] * a[i];
+        norm_b += b[i] * b[i];
+    }
+
+    return dot_product / (std::sqrt(norm_a) * std::sqrt(norm_b));
+}
+
+// Function to find the closest word embedding to a target vector
+std::string find_closest_word(llama_context* ctx, const llama_model& model, const std::vector<float>& target_embd) {
+    float max_similarity = -1.0f;
+    std::string closest_word = "";
+
+    // Iterate through all words in the vocabulary
+    for (llama_token i = 0; i < (llama_token)model.hparams.n_vocab; ++i) {
+        // Get the word (piece) corresponding to the token ID
+        char piece[128]; // Buffer to store the word
+        llama_token_to_piece(&model, i, piece, sizeof(piece), 1, false);
+        const std::string word(piece);
+
+        // Get the embedding for the word
+        const float* embd_data = llama_get_embeddings(ctx) + i * model.hparams.n_embd;
+
+        // Create a vector from the embedding data
+        std::vector<float> word_embd(embd_data, embd_data + model.hparams.n_embd);
+
+        // Calculate cosine similarity
+        float similarity = cosine_similarity(target_embd, word_embd);
+
+        // Update closest word if similarity is higher
+        if (similarity > max_similarity) {
+            max_similarity = similarity;
+            closest_word = word;
+        }
+    }
+
+    return closest_word;
+}
+
+
+// Function to perform the King - Man + Woman = ? analogy
+std::string king_man_woman_queen(llama_context* ctx) {
+     const llama_model& model = ctx->model;
+    const llama_vocab& vocab = model.vocab;
+
+    // Get token IDs for the words (using find and checking for validity)
+    auto king_it = vocab.token_to_id.find(" King");
+    if (king_it == vocab.token_to_id.end()) {
+        fprintf(stderr, "Word 'King' not found in vocabulary!\n");
+        return ""; // Or handle the error appropriately
+    }
+    llama_token king_token = king_it->second;
+
+    auto man_it = vocab.token_to_id.find(" Man");
+    if (man_it == vocab.token_to_id.end()) {
+        fprintf(stderr, "Word 'Man' not found in vocabulary!\n");
+        return ""; // Or handle the error appropriately
+    }
+    llama_token man_token = man_it->second;
+
+    auto woman_it = vocab.token_to_id.find(" Woman");
+    if (woman_it == vocab.token_to_id.end()) {
+        fprintf(stderr, "Word 'Woman' not found in vocabulary!\n");
+        return ""; // Or handle the error appropriately
+    }
+    llama_token woman_token = woman_it->second;
+
+    // Get embeddings for the words
+    const float* embd_data = llama_get_embeddings(ctx);
+    const float* king_embd_data  = embd_data + king_token * model.hparams.n_embd;
+    const float* man_embd_data   = embd_data + man_token  * model.hparams.n_embd;
+    const float* woman_embd_data = embd_data + woman_token * model.hparams.n_embd;
+
+    // Create vectors from the embedding data
+    std::vector<float> king_embd(king_embd_data, king_embd_data + model.hparams.n_embd);
+    std::vector<float> man_embd(man_embd_data, man_embd_data + model.hparams.n_embd);
+    std::vector<float> woman_embd(woman_embd_data, woman_embd_data + model.hparams.n_embd);
+
+    // Perform the vector operation: King - Man + Woman
+    std::vector<float> target_embd(model.hparams.n_embd);
+    for (size_t i = 0; i < model.hparams.n_embd; ++i) {
+        target_embd[i] = king_embd[i] - man_embd[i] + woman_embd[i];
+    }
+
+    // Find the closest word to the target embedding
+    return find_closest_word(ctx, model, target_embd); 
+}
+
+
 
 static void llm_load_vocab(
         llama_model_loader & ml,

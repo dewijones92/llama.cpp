@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include "string.h" // Add this line
 
 #ifdef LLAMA_SHARED
 #    if defined(_WIN32) && !defined(__MINGW32__)
@@ -1181,6 +1182,8 @@ extern "C" {
 
     LLAMA_API void llama_dump_timing_info_yaml(FILE * stream, const struct llama_context * ctx);
 
+    LLAMA_API string king_man_woman_queen(llama_context* ctx);
+
 #ifdef __cplusplus
 }
 #endif
@@ -1237,6 +1240,7 @@ std::pair<std::vector<uint32_t>, llama_partial_utf8> decode_utf8(
 // Randomly selects a token from the candidates based on their probabilities using given std::mt19937.
 // This is a temporary workaround in order to fix race conditions when sampling with multiple sequences.
 llama_token llama_sample_token_with_rng(struct llama_context * ctx, llama_token_data_array * candidates, std::mt19937 & rng);
+
 
 #endif // LLAMA_API_INTERNAL
 
