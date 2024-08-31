@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
-#include "string.h" // Add this line
+#include <string.h>
 
 #ifdef LLAMA_SHARED
 #    if defined(_WIN32) && !defined(__MINGW32__)
