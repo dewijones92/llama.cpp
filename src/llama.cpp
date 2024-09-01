@@ -124,6 +124,7 @@ float cosine_similarity(const std::vector<float>& a, const std::vector<float>& b
 
 
 
+
 // trim whitespace from the beginning and end of a string
 static std::string trim(const std::string & str) {
     size_t start = 0;
@@ -3564,6 +3565,46 @@ static size_t llama_get_device_memory(const llama_model & model, int device) {
     GGML_UNUSED(model);
     GGML_UNUSED(local_device);
 }
+
+
+static std::string find_closest_word( const llama_context * ctx, const std::vector<float>& target_embd) {
+
+    const llama_model & model = ctx->model;
+    const llama_cparams & cparams = ctx->cparams;
+
+    const struct llama_hparams & hparams = model.hparams;
+
+    const int64_t  n_layer = hparams.n_layer;
+
+    float max_similarity = -1.0f;
+    std::string closest_word = "";
+
+    // Iterate through all words in the vocabulary
+    for (llama_token i = 0; i < (llama_token)model.hparams.n_vocab; ++i) {
+        // Get the word (piece) corresponding to the token ID
+        char piece[128]; // Buffer to store the word
+        llama_token_to_piece(&model, i, piece, sizeof(piece), 1, false);
+        const std::string word(piece);
+
+        // Get the embedding for the word
+        const float* embd_data = ctx->embd + i * model.hparams.n_embd;
+
+        // Create a vector from the embedding data
+        std::vector<float> word_embd(embd_data, embd_data + model.hparams.n_embd);
+
+        // Calculate cosine similarity
+        float similarity = cosine_similarity(target_embd, word_embd);
+
+        // Update closest word if similarity is higher
+        if (similarity > max_similarity) {
+            max_similarity = similarity;
+            closest_word = word;
+        }
+    }
+
+    return closest_word;
+}
+
 
 //
 // kv cache helpers
