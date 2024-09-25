@@ -1446,6 +1446,10 @@ void llama_batch_add(
 //
 // Vocab utils
 //
+std::string dewi() {
+    return "dewilol2";
+}
+
 
 std::vector<llama_token> llama_tokenize(
   const struct llama_context * ctx,

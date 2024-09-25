@@ -17,7 +17,11 @@ int main(int argc, char ** argv) {
     params.prompt = "Hello my name is";
     params.n_predict = 32;
 
+    printf("dewilol");
+    printf("%s", dewi().c_str()); // Use c_str() to get the C-style string
+
     if (!gpt_params_parse(argc, argv, params, LLAMA_EXAMPLE_COMMON, print_usage)) {
+        print_usage(argc, argv);
         return 1;
     }
 

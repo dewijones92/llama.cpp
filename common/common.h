@@ -429,6 +429,9 @@ void llama_batch_add(
     const std::vector<llama_seq_id> & seq_ids,
                                bool   logits);
 
+
+std::string dewi   ();
+
 //
 // Vocab utils
 //
