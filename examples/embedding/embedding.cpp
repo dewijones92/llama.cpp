@@ -217,13 +217,21 @@ int main(int argc, char ** argv) {
         if (pooling_type == LLAMA_POOLING_TYPE_NONE) {
             for (int j = 0; j < n_embd_count; j++) {
                 LOG("embedding %d: ", j);
-                for (int i = 0; i < std::min(3, n_embd); i++) {
-                    if (params.embd_normalize == 0) {
-                        LOG("%6.0f ", emb[j * n_embd + i]);
-                    } else {
-                        LOG("%9.6f ", emb[j * n_embd + i]);
+                int prompt_index = 0;
+                int token_index = 0;
+                int embedding_counter = 0;
+                for (int k = 0; k < n_prompts; k++) {
+                    if (embedding_counter + inputs[k].size() > j) {
+                        prompt_index = k;
+                        token_index = j - embedding_counter;
+                        break;
                     }
+                    embedding_counter += inputs[k].size();
                 }
+
+                std::string token_text = llama_token_to_piece(ctx, inputs[prompt_index][token_index]);
+
+                LOG("embedding %d ('%s'): ", j, token_text.c_str()); // Print the token
                 LOG(" ... ");
                 for (int i = n_embd - 3; i < n_embd; i++) {
                     if (params.embd_normalize == 0) {
